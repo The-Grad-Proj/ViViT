@@ -81,15 +81,15 @@ class ViViT(nn.Module):
     
     
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     
-    img = torch.ones([1, 16, 3, 224, 224])
+#     img = torch.ones([1, 16, 3, 224, 224])
     
-    model = ViViT(224, 16, 1, 16)
-    parameters = filter(lambda p: p.requires_grad, model.parameters())
-    parameters = sum([np.prod(p.size()) for p in parameters]) / 1_000_000
-    print('Trainable Parameters: %.3fM' % parameters)
+#     model = ViViT(224, 16, 1, 16)
+#     parameters = filter(lambda p: p.requires_grad, model.parameters())
+#     parameters = sum([np.prod(p.size()) for p in parameters]) / 1_000_000
+#     print('Trainable Parameters: %.3fM' % parameters)
     
-    out = model(img)
+#     out = model(img)
     
-    print("Shape of out :", out.shape)      # [B, num_classes]
+#     print("Shape of out :", out.shape)      # [B, num_classes]
