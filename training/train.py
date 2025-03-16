@@ -18,7 +18,8 @@ np.random.seed(42)
 torch.manual_seed(42)
 
 # Hyperparameters
-BATCH_SIZE = 16
+PATCH_SIZE = 16
+BATCH_SIZE = 32
 FRAMES_NUM = 16
 STRIDE = 4
 LR = 0.001
@@ -60,7 +61,7 @@ def get_data_loaders():
 
 
 def load_model():
-    model = ViViT(image_size = IMAGE_SIZE, patch_size = BATCH_SIZE, num_classes = 1, num_frames = FRAMES_NUM).to(DEVICE)
+    model = ViViT(image_size = IMAGE_SIZE, patch_size = PATCH_SIZE, num_classes = 1, num_frames = FRAMES_NUM).to(DEVICE)
     if os.path.exists(MODEL_PATH):
         model.load_state_dict(torch.load(MODEL_PATH))
         print("Loaded existing model from saved_models/")
@@ -90,7 +91,7 @@ def train(model, train_loader, criterion, optimizer):
     print(f"Train Loss: {avg_train_loss:.4f}")
 
     # Log training loss to WandB
-    # wandb.log({"Train Loss": avg_train_loss})
+    wandb.log({"Train Loss": avg_train_loss})
 
     return avg_train_loss
 
