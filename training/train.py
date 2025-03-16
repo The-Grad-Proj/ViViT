@@ -29,8 +29,8 @@ MODEL_PATH = "saved_models/vivit_model.pth"
 
 
 # Define Data Directories
-root_dir = r"D:\Mechatronics\Graduation Project\Udacity Dataset"
-csv_path = r"D:\Mechatronics\Graduation Project\Udacity Dataset\interpolated.csv"
+root_dir = '/home/ibraa04/grad_project/udacity/output'
+csv_path = root_dir + '/interpolated.csv'
 
 
 # Define Data Transformations
@@ -113,20 +113,20 @@ def validate(model, val_loader, criterion):
     print(f"Validation Loss: {avg_val_loss:.4f}")
 
     # Log validation loss to WandB
-    wandb.log({"Validation Loss": avg_val_loss})
+    # wandb.log({"Validation Loss": avg_val_loss})
 
     return avg_val_loss
 
 
 def main():
     # Initialize WandB
-    wandb.init(project="vivit-training", config={
-        "batch_size": BATCH_SIZE,
-        "frames_num": FRAMES_NUM,
-        "stride": STRIDE,
-        "learning_rate": LR,
-        "epochs": EPOCHS_NUM,
-    })
+    # wandb.init(project="vivit-training", config={
+    #     "batch_size": BATCH_SIZE,
+    #     "frames_num": FRAMES_NUM,
+    #     "stride": STRIDE,
+    #     "learning_rate": LR,
+    #     "epochs": EPOCHS_NUM,
+    # })
 
     train_loader, val_loader = get_data_loaders()
     model = load_model()
@@ -145,7 +145,7 @@ def main():
     print("Model saved in saved_models/")
 
     # Finish WandB logging
-    wandb.finish()
+    # wandb.finish()
 
 
 if __name__ == "__main__":
