@@ -10,12 +10,12 @@ import numpy as np
 import os
 import warnings
 warnings.filterwarnings("ignore")
-
-sys.path.append("d:/Mechatronics/Graduation Project/ViViT")
 from dataloaders.dataset import CustomDataset
-sys.path.append("d:/Mechatronics/Graduation Project/ViViT/models")
 from models.ViViT import ViViT
 
+# Fix numpy and pytorch seed
+np.random.seed(42)
+torch.manual_seed(42)
 
 # Hyperparameters
 BATCH_SIZE = 16
