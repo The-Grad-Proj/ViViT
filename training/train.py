@@ -46,7 +46,6 @@ def get_data_loaders():
     dataset_size = len(dataset_instance)
     indices = list(range(dataset_size))
     
-    np.random.seed(42)
     np.random.shuffle(indices)
     split = int(0.9 * dataset_size)  # 90% train, 10% validation
     train_indices, val_indices = indices[:split], indices[split:]
