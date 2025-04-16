@@ -60,7 +60,10 @@ class CustomDataset(Dataset):
         # Steering angle of the last frame in the sequence
         steering_angle = self.csv_file['angle'].iloc[start_idx + self.T - 1]
 
-        return frame_sequence, torch.tensor(steering_angle, dtype=torch.float32)
+        # Speed of the last frame in the sequence
+        speed = self.csv_file['speed'].iloc[start_idx + self.T - 1]
+
+        return frame_sequence, torch.tensor(steering_angle, dtype=torch.float32), torch.tensor(speed, dtype=torch.float32)
 
 # ------------------ TEST THE DATASET ------------------
 
@@ -71,8 +74,8 @@ if __name__ == "__main__":
         transforms.ToTensor(),
     ])
 
-    root_dir = r"D:\Mechatronics\Graduation Project\Udacity Dataset"
-    csv_path = r"D:\Mechatronics\Graduation Project\Udacity Dataset\interpolated.csv"
+    root_dir = r"D:\AI\Graduation Project\Udacity Dataset"
+    csv_path = r"D:\AI\Graduation Project\Udacity Dataset\interpolated.csv"
 
     dataset = CustomDataset(csv_file=csv_path, root_dir=root_dir, T=16, stride=4, transform=transform)
 
@@ -85,9 +88,10 @@ if __name__ == "__main__":
     for _ in range(5):
 
         # Get the first sample using next()
-        frames, steering = next(data_iter)
+        frames, steering, speed = next(data_iter)
 
         print(f"Steering angle: {steering.item()}")
+        print(f"Speed: {speed.item()}")
         print(f"Frames shape: {frames.shape}")  # Should be (1, T, C, H, W) because of batch size
 
         # Display the first frame of the sequence
