@@ -10,6 +10,7 @@ import numpy as np
 import os
 import warnings
 warnings.filterwarnings("ignore")
+# sys.path.append("D:\AI\Graduation Project\ViViT")
 from dataloaders.dataset import CustomDataset
 from models.ViViT import ViViT
 
@@ -33,6 +34,8 @@ MODEL_PATH = "saved_models/vivit_model.pth"
 root_dir = '/home/ibraa04/grad_project/udacity/output'
 csv_path = root_dir + '/interpolated.csv'
 
+# root_dir = r"D:\AI\Graduation Project\Udacity Dataset"
+# csv_path = r"D:\AI\Graduation Project\Udacity Dataset\interpolated.csv"
 
 # Define Data Transformations
 transform = transforms.Compose([
@@ -60,7 +63,7 @@ def get_data_loaders():
 
 
 def load_model():
-    model = ViViT(image_size = IMAGE_SIZE, patch_size = PATCH_SIZE, num_classes = 1, num_frames = FRAMES_NUM).to(DEVICE)
+    model = ViViT(image_size = IMAGE_SIZE, patch_size = PATCH_SIZE, num_classes = 2, num_frames = FRAMES_NUM).to(DEVICE)
     if os.path.exists(MODEL_PATH):
         model.load_state_dict(torch.load(MODEL_PATH))
         print("Loaded existing model from saved_models/")
@@ -70,50 +73,86 @@ def load_model():
 
 
 def train(model, train_loader, criterion, optimizer):
-    """Train the model and log training loss using WandB."""
+    """Train the model and log steering/speed losses using WandB."""
     model.train()
     total_loss = 0
+    total_steering_loss = 0
+    total_speed_loss = 0
 
     for batch in tqdm(train_loader, desc="Training"):
-        inputs, targets = batch
-        inputs, targets = inputs.to(DEVICE), targets.to(DEVICE)
+        frames, steering_angle, speed = batch
+        frames, steering_angle, speed = frames.to(DEVICE), steering_angle.to(DEVICE), speed.to(DEVICE)
 
         optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
+        outputs = model(frames)
+
+        # Split outputs and targets
+        pred_steering, pred_speed = outputs[:, 0], outputs[:, 1]
+
+        # Compute individual losses
+        loss_steering = criterion(pred_steering, steering_angle)
+        loss_speed = criterion(pred_speed, speed)
+
+        # Total loss is a weighted sum (can be adjusted)
+        loss = loss_steering + loss_speed
         loss.backward()
         optimizer.step()
 
         total_loss += loss.item()
+        total_steering_loss += loss_steering.item()
+        total_speed_loss += loss_speed.item()
 
     avg_train_loss = total_loss / len(train_loader)
-    print(f"Train Loss: {avg_train_loss:.4f}")
+    avg_steering_loss = total_steering_loss / len(train_loader)
+    avg_speed_loss = total_speed_loss / len(train_loader)
 
-    # Log training loss to WandB
-    wandb.log({"Train Loss": avg_train_loss})
+    print(f"Train Loss: {avg_train_loss:.4f} | Steering: {avg_steering_loss:.4f} | Speed: {avg_speed_loss:.4f}")
+    
+    # wandb.log({
+    #     "Train Loss": avg_train_loss,
+    #     "Train Steering Loss": avg_steering_loss,
+    #     "Train Speed Loss": avg_speed_loss
+    # })
 
     return avg_train_loss
 
 
 def validate(model, val_loader, criterion):
-    """Validate the model and log validation loss using WandB."""
+    """Validate the model and log steering/speed losses using WandB."""
     model.eval()
     total_loss = 0
+    total_steering_loss = 0
+    total_speed_loss = 0
 
     with torch.no_grad():
         for batch in tqdm(val_loader, desc="Validation"):
-            inputs, targets = batch
-            inputs, targets = inputs.to(DEVICE), targets.to(DEVICE)
+            frames, steering_angle, speed = batch
+            frames, steering_angle, speed = frames.to(DEVICE), steering_angle.to(DEVICE), speed.to(DEVICE)
 
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
+            outputs = model(frames)
+
+            pred_steering, pred_speed = outputs[:, 0], outputs[:, 1]
+
+            loss_steering = criterion(pred_steering, steering_angle)
+            loss_speed = criterion(pred_speed, speed)
+
+            loss = loss_steering + loss_speed
+
             total_loss += loss.item()
+            total_steering_loss += loss_steering.item()
+            total_speed_loss += loss_speed.item()
 
     avg_val_loss = total_loss / len(val_loader)
-    print(f"Validation Loss: {avg_val_loss:.4f}")
+    avg_steering_loss = total_steering_loss / len(val_loader)
+    avg_speed_loss = total_speed_loss / len(val_loader)
 
-    # Log validation loss to WandB
-    # wandb.log({"Validation Loss": avg_val_loss})
+    print(f"Validation Loss: {avg_val_loss:.4f} | Steering: {avg_steering_loss:.4f} | Speed: {avg_speed_loss:.4f}")
+
+    # wandb.log({
+    #     "Validation Loss": avg_val_loss,
+    #     "Validation Steering Loss": avg_steering_loss,
+    #     "Validation Speed Loss": avg_speed_loss
+    # })
 
     return avg_val_loss
 
