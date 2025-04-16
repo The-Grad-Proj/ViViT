@@ -10,7 +10,7 @@ import numpy as np
 import os
 import warnings
 warnings.filterwarnings("ignore")
-# sys.path.append("D:\AI\Graduation Project\ViViT")
+sys.path.append("D:\AI\Graduation Project\ViViT")
 from dataloaders.dataset import CustomDataset
 from models.ViViT import ViViT
 
@@ -31,11 +31,11 @@ MODEL_PATH = "saved_models/vivit_model.pth"
 
 
 # Define Data Directories
-root_dir = '/home/ibraa04/grad_project/udacity/output'
-csv_path = root_dir + '/interpolated.csv'
+# root_dir = '/home/ibraa04/grad_project/udacity/output'
+# csv_path = root_dir + '/interpolated.csv'
 
-# root_dir = r"D:\AI\Graduation Project\Udacity Dataset"
-# csv_path = r"D:\AI\Graduation Project\Udacity Dataset\interpolated.csv"
+root_dir = r"D:\AI\Graduation Project\Udacity Dataset"
+csv_path = r"D:\AI\Graduation Project\Udacity Dataset\interpolated.csv"
 
 # Define Data Transformations
 transform = transforms.Compose([
@@ -72,7 +72,7 @@ def load_model():
     return model
 
 
-def train(model, train_loader, criterion, optimizer):
+def train(model, train_loader, angle_criterion, speed_criterion, optimizer):
     """Train the model and log steering/speed losses using WandB."""
     model.train()
     total_loss = 0
@@ -90,8 +90,8 @@ def train(model, train_loader, criterion, optimizer):
         pred_steering, pred_speed = outputs[:, 0], outputs[:, 1]
 
         # Compute individual losses
-        loss_steering = criterion(pred_steering, steering_angle)
-        loss_speed = criterion(pred_speed, speed)
+        loss_steering = torch.sqrt(angle_criterion(pred_steering, steering_angle) + 1e-6)
+        loss_speed = speed_criterion(pred_speed, speed)
 
         # Total loss is a weighted sum (can be adjusted)
         loss = loss_steering + loss_speed
@@ -106,7 +106,7 @@ def train(model, train_loader, criterion, optimizer):
     avg_steering_loss = total_steering_loss / len(train_loader)
     avg_speed_loss = total_speed_loss / len(train_loader)
 
-    print(f"Train Loss: {avg_train_loss:.4f} | Steering: {avg_steering_loss:.4f} | Speed: {avg_speed_loss:.4f}")
+    print(f"Train Loss: {avg_train_loss:.4f} | Steering RMSE: {avg_steering_loss:.4f} | Speed SmoothL1: {avg_speed_loss:.4f}")
     
     # wandb.log({
     #     "Train Loss": avg_train_loss,
@@ -117,7 +117,7 @@ def train(model, train_loader, criterion, optimizer):
     return avg_train_loss
 
 
-def validate(model, val_loader, criterion):
+def validate(model, val_loader, angle_criterion, speed_criterion):
     """Validate the model and log steering/speed losses using WandB."""
     model.eval()
     total_loss = 0
@@ -133,8 +133,8 @@ def validate(model, val_loader, criterion):
 
             pred_steering, pred_speed = outputs[:, 0], outputs[:, 1]
 
-            loss_steering = criterion(pred_steering, steering_angle)
-            loss_speed = criterion(pred_speed, speed)
+            loss_steering = torch.sqrt(angle_criterion(pred_steering, steering_angle) + 1e-6)
+            loss_speed = speed_criterion(pred_speed, speed)
 
             loss = loss_steering + loss_speed
 
@@ -146,7 +146,7 @@ def validate(model, val_loader, criterion):
     avg_steering_loss = total_steering_loss / len(val_loader)
     avg_speed_loss = total_speed_loss / len(val_loader)
 
-    print(f"Validation Loss: {avg_val_loss:.4f} | Steering: {avg_steering_loss:.4f} | Speed: {avg_speed_loss:.4f}")
+    print(f"Validation Loss: {avg_val_loss:.4f} | Steering RMSE: {avg_steering_loss:.4f} | Speed SmoothL1: {avg_speed_loss:.4f}")
 
     # wandb.log({
     #     "Validation Loss": avg_val_loss,
@@ -169,13 +169,19 @@ def main():
 
     train_loader, val_loader = get_data_loaders()
     model = load_model()
-    criterion = nn.MSELoss()
+
+    angle_criterion = torch.nn.MSELoss()
+    angle_criterion.to(DEVICE)
+
+    speed_criterion = torch.nn.SmoothL1Loss()
+    speed_criterion.to(DEVICE)
+
     optimizer = optim.Adam(model.parameters(), lr=LR)
 
     for epoch in range(EPOCHS_NUM):
         print(f"Epoch [{epoch+1}/{EPOCHS_NUM}]")
-        train_loss = train(model, train_loader, criterion, optimizer)
-        val_loss = validate(model, val_loader, criterion)
+        train_loss = train(model, train_loader, angle_criterion, speed_criterion, optimizer)
+        val_loss = validate(model, val_loader, angle_criterion, speed_criterion)
 
         print(f"Epoch [{epoch+1}/{EPOCHS_NUM}], Train Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}")
     
